@@ -20,13 +20,11 @@ producer = KafkaProducer(
 )
 
 def is_inside_polygon( x, y, w, h, polygon ):
-    """Vérifie si un rectangle est à l'intérieur du polygone."""
     rect_center = (x + w // 2, y + h // 2)
     return cv2.pointPolygonTest(polygon, rect_center, False) >= 0
 
 
-# Chargement du flux vidéo
-cap = cv2.VideoCapture(config["video_source"])
+cap = cv2.VideoCapture(config["video_detection"])
 FRAME_WIDTH = config["frame_width"]
 FRAME_HEIGHT = config["frame_height"]
 TARGET_FPS = config["target_fps"]
@@ -54,14 +52,15 @@ while True:
             x, y, w, h = cv2.boundingRect(contour)
             if is_inside_polygon(x, y, w, h, polygon_points):
                 intrusion_detected = True
-                cv2.putText(frame, "Intrusion detectee!", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                cv2.putText(frame, "Intrusion !", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
     if intrusion_detected:
         producer.send(config["kafka_topic"], {"event": "intrusion", "timestamp": time.time()})
 
-    cv2.imshow("Video", frame)
-    cv2.imshow("Masque", mask)
+    if config["show_video"]:
+        cv2.imshow("Video", frame)
+        cv2.imshow("Masque", mask)
 
     if cv2.waitKey(frame_delay) & 0xFF == ord('q'):
         break

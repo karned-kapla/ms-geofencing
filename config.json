@@ -1,5 +1,7 @@
 {
-  "video_source": "rtsp://192.168.1.107/live2.sdp",
+  "show_video": "True",
+  "video_capture": "rtsp://192.168.1.107/live1.sdp",
+  "video_detection": "rtsp://192.168.1.107/live2.sdp",
   "frame_width": 640,
   "frame_height": 360,
   "target_fps": 5,
