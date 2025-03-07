@@ -1,0 +1,10 @@
+{
+  "video_source": "rtsp://192.168.1.107/live2.sdp",
+  "frame_width": 640,
+  "frame_height": 360,
+  "target_fps": 5,
+  "min_object_size": 1000,
+  "polygon": [[450, 200], [640, 200], [640, 360], [450, 360]],
+  "kafka_broker": "localhost:29092",
+  "kafka_topic": "intrusion_alerts"
+}
