@@ -1,15 +1,25 @@
 import cv2
+import numpy as np
 
 class IntrusionDetector:
     def __init__(self, polygon_points):
         self.polygon_points = polygon_points
-        self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(detectShadows=True)
+        self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(
+            detectShadows=True
+        )
 
     def detect(self, frame):
+        frame = cv2.resize(frame, (640, 360))
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         mask = self.bg_subtractor.apply(blurred)
-        mask = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)[1]
+
+        # Afficher le masque avant le seuillage pour diagnostic
+        cv2.imshow("Raw Mask", mask)
+
+        # Ajuster le seuil pour améliorer la détection
+        _, mask = cv2.threshold(mask, 25, 255, cv2.THRESH_BINARY)
+
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         for contour in contours:
