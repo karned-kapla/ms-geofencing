@@ -1,5 +1,5 @@
 {
-  "show_video": 1,
+  "show_video": 0,
   "show_zone": 0,
   "show_intrusion": 0,
   "capture_interval": 5,

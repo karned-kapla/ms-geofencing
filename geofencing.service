@@ -1,0 +1,12 @@
+[Unit]
+Description=Geofencing Docker Container
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/docker run -d --rm -it -v /home/skit/tmp:/tmp killiankopp/ms-geofencing:0.3
+ExecStop=/usr/bin/docker stop geofencing
+
+[Install]
+WantedBy=multi-user.target
