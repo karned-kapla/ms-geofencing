@@ -1,12 +1,15 @@
 {
-  "show_video": "True",
-  "video_capture": "rtsp://192.168.1.107/live1.sdp",
+  "show_video": 1,
+  "show_zone": 0,
+  "show_intrusion": 0,
+  "capture_interval": 5,
   "video_detection": "rtsp://192.168.1.107/live2.sdp",
+  "video_capture": "rtsp://192.168.1.107/live1.sdp",
   "frame_width": 640,
   "frame_height": 360,
   "target_fps": 5,
   "min_object_size": 1000,
-  "polygon": [[450, 200], [640, 200], [640, 360], [450, 360]],
+  "polygon": [[300, 0], [500, 20], [500, 300], [300, 300]],
   "kafka_broker": "localhost:29092",
   "kafka_topic": "intrusion_alerts"
 }

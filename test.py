@@ -18,13 +18,6 @@ def load_config():
 
 config = load_config()
 
-"""
-producer = KafkaProducer(
-    bootstrap_servers=config["kafka_broker"],
-    value_serializer=lambda v: json.dumps(v).encode("utf-8")
-)
-"""
-
 def is_inside_polygon( x, y, w, h, polygon ):
     rect_center = (x + w // 2, y + h // 2)
     return cv2.pointPolygonTest(polygon, rect_center, False) >= 0
@@ -51,31 +44,20 @@ while True:
 
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    if int(config["show_zone"]) == 1:
-        cv2.polylines(frame, [polygon_points], isClosed=True, color=(0, 255, 0), thickness=3)
-
     intrusion_detected = False
     for contour in contours:
         if cv2.contourArea(contour) > config["min_object_size"]:
             x, y, w, h = cv2.boundingRect(contour)
             if is_inside_polygon(x, y, w, h, polygon_points):
                 intrusion_detected = True
-                if int(config["show_intrusion"]) == 1:
-                    cv2.putText(frame, "Intrusion !", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
     if intrusion_detected:
-        # producer.send(config["kafka_topic"], {"event": "intrusion", "timestamp": time.time()})
         now = time.time()
-        if now - last_capture > config["capture_interval"]:
+        if int(now - last_capture) > 5:
             print("Intrusion detected !")
             uuid_img = str(uuid.uuid4())
             cv2.imwrite(f"tmp/{uuid_img}.jpg", frame)
             last_capture = now
-
-    if int(config["show_video"]) == 1:
-        cv2.imshow("Video", frame)
-        cv2.imshow("Masque", mask)
 
     if cv2.waitKey(frame_delay) & 0xFF == ord('q'):
         break
