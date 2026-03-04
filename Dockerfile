@@ -6,7 +6,8 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+COPY core/ core/
 COPY main.py main.py
-COPY config.json .
+COPY config.json config.json
 
 CMD ["python3", "main.py"]

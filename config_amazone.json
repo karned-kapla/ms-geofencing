@@ -4,7 +4,7 @@
   "show_zone": true,
   "show_intrusion": true,
   "capture_interval": 5,
-  "video_source": "test_video.avi",
+  "video_source": "rtsp://192.168.1.107/live2.sdp",
   "frame_width": 640,
   "frame_height": 360,
   "target_fps": 5,
