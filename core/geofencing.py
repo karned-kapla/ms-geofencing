@@ -21,7 +21,7 @@ class GeofencingAnalyzer:
         mask = cv2.threshold(mask, MASK_THRESHOLD, 255, cv2.THRESH_BINARY)[1]
         return resized, mask
 
-    def detect_intrusions(self, mask: np.ndarray, zone: Zone) -> list[IntrusionEvent]:
+    def detect_intrusions(self, mask: np.ndarray, zone: Zone, video_source: str = "", service_id: str | None = None) -> list[IntrusionEvent]:
         polygon = np.array(zone.polygon, np.int32).reshape((-1, 1, 2))
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -30,7 +30,15 @@ class GeofencingAnalyzer:
             if cv2.contourArea(contour) > zone.min_object_size:
                 x, y, w, h = cv2.boundingRect(contour)
                 if self._is_inside_polygon(x, y, w, h, polygon):
-                    events.append(IntrusionEvent(timestamp=datetime.now(), bbox=(x, y, w, h)))
+                    events.append(IntrusionEvent(
+                        timestamp=datetime.now(),
+                        bbox=(x, y, w, h),
+                        video_source=video_source,
+                        frame_width=zone.frame_width,
+                        frame_height=zone.frame_height,
+                        polygon=zone.polygon,
+                        service_id=service_id,
+                    ))
 
         return events
 

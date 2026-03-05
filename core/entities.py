@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -20,5 +21,11 @@ class Zone(BaseModel):
 
 class IntrusionEvent(BaseModel):
     timestamp: datetime
-    bbox: tuple[int, int, int, int]  # x, y, w, h
+    bbox: tuple[int, int, int, int]          # x, y, w, h
+    video_source: str
+    frame_width: int
+    frame_height: int
+    polygon: list[list[int]]
+    capture_path: Optional[str] = None
+    service_id: Optional[str] = None
 
