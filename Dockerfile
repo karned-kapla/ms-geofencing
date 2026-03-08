@@ -59,7 +59,9 @@ ENV PYTHONUNBUFFERED=1 \
     SHOW_INTRUSION=true \
     KAFKA_BOOTSTRAP_SERVERS="" \
     KAFKA_TOPIC="" \
-    SERVICE_ID=""
+    SERVICE_ID="" \
+    RECONNECT_DELAY=5 \
+    RECONNECT_MAX_DELAY=60
 
 CMD ["python", "-u", "main.py"]
 

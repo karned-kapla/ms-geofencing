@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import uuid
 
 import cv2
@@ -52,6 +53,10 @@ KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
 KAFKA_TOPIC             = os.getenv("KAFKA_TOPIC")
 SERVICE_ID              = os.getenv("SERVICE_ID")          # optional pod identifier
 
+# ── Reconnexion ────────────────────────────────────────────────────────────────
+RECONNECT_DELAY     = _int_env("RECONNECT_DELAY", 5)       # délai initial en secondes
+RECONNECT_MAX_DELAY = _int_env("RECONNECT_MAX_DELAY", 60)  # délai maximum en secondes
+
 # ── Entrypoint ─────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -86,58 +91,67 @@ def main() -> None:
     )
 
     os.makedirs(CAPTURE_DIR, exist_ok=True)
-    cap = cv2.VideoCapture(VIDEO_SOURCE)
 
-    if not cap.isOpened():
-        print(f"❌ Cannot open video source: {VIDEO_SOURCE}")
-        return
-
-    print("✅ Stream opened — monitoring started")
-
+    delay = RECONNECT_DELAY
     try:
         while True:
-            ret, frame = cap.read()
-            if not ret:
-                print("⚠️  Stream ended or frame unreadable — stopping")
-                break
+            cap = cv2.VideoCapture(VIDEO_SOURCE)
 
-            resized, mask = analyzer.preprocess_frame(frame, zone)
-            events = analyzer.detect_intrusions(mask, zone, video_source=str(VIDEO_SOURCE), service_id=SERVICE_ID)
+            if not cap.isOpened():
+                print(f"⚠️  Cannot open stream — retrying in {delay}s...")
+                time.sleep(delay)
+                delay = min(delay * 2, RECONNECT_MAX_DELAY)
+                continue
 
-            if SHOW_ZONE:
-                cv2.polylines(resized, [polygon_points], isClosed=True, color=(0, 255, 0), thickness=2)
+            delay = RECONNECT_DELAY  # reset backoff on success
+            print("✅ Stream opened — monitoring started")
 
-            if events:
-                for event in events:
-                    print(f"🚨 Intrusion detected at {event.timestamp.strftime('%H:%M:%S')} — bbox {event.bbox}")
-                    if SHOW_INTRUSION:
-                        x, y, w, h = event.bbox
-                        cv2.rectangle(resized, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    print(f"⚠️  Stream lost — reconnecting in {delay}s...")
+                    cap.release()
+                    time.sleep(delay)
+                    delay = min(delay * 2, RECONNECT_MAX_DELAY)
+                    break
 
-                if throttle.is_ready():
-                    filename = f"{CAPTURE_DIR}/{uuid.uuid4()}.jpg"
-                    cv2.imwrite(filename, resized)
-                    throttle.mark()
-                    print(f"📸 Frame captured → {filename}")
+                resized, mask = analyzer.preprocess_frame(frame, zone)
+                events = analyzer.detect_intrusions(mask, zone, video_source=str(VIDEO_SOURCE), service_id=SERVICE_ID)
 
-                    if kafka:
-                        for event in events:
-                            event.capture_path = filename
-                            kafka.publish(event)
-                        print(f"📨 {len(events)} event(s) published to Kafka topic '{KAFKA_TOPIC}'")
+                if SHOW_ZONE:
+                    cv2.polylines(resized, [polygon_points], isClosed=True, color=(0, 255, 0), thickness=2)
 
-            if SHOW_VIDEO:
-                cv2.imshow("Video", resized)
+                if events:
+                    for event in events:
+                        print(f"🚨 Intrusion detected at {event.timestamp.strftime('%H:%M:%S')} — bbox {event.bbox}")
+                        if SHOW_INTRUSION:
+                            x, y, w, h = event.bbox
+                            cv2.rectangle(resized, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
-            if SHOW_MASK:
-                cv2.imshow("Masque", mask)
+                    if throttle.is_ready():
+                        filename = f"{CAPTURE_DIR}/{uuid.uuid4()}.jpg"
+                        cv2.imwrite(filename, resized)
+                        throttle.mark()
+                        print(f"📸 Frame captured → {filename}")
 
-            if (SHOW_VIDEO or SHOW_MASK) and cv2.waitKey(frame_delay) & 0xFF == ord("q"):
-                print("🛑 Stop requested via keyboard")
-                break
+                        if kafka:
+                            for event in events:
+                                event.capture_path = filename
+                                kafka.publish(event)
+                            print(f"📨 {len(events)} event(s) published to Kafka topic '{KAFKA_TOPIC}'")
+
+                if SHOW_VIDEO:
+                    cv2.imshow("Video", resized)
+
+                if SHOW_MASK:
+                    cv2.imshow("Masque", mask)
+
+                if (SHOW_VIDEO or SHOW_MASK) and cv2.waitKey(frame_delay) & 0xFF == ord("q"):
+                    print("🛑 Stop requested via keyboard")
+                    cap.release()
+                    return
 
     finally:
-        cap.release()
         if kafka:
             kafka.close()
         if SHOW_VIDEO or SHOW_MASK:
